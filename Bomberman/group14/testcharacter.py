@@ -23,12 +23,15 @@ class TestCharacter(CharacterEntity):
 
         print("My Location: ", self.x, ", ", self.y)
         print("Exit Location: ", self.exitX, ", ", self.exitY)
-        print("Monsters Location: ", self.monsX, self.monsY)
+        print("Monsters Location: ", self.monsX, ", ", self.monsY)
 
-        policy = [[(0, 0, 0) for i in range(wrld.width())] for j in range(wrld.height())]
+        policy1 = [[(0, 0, 0) for i in range(wrld.width())] for j in range(wrld.height())]
+        policy2 = [[(0, 0, 0) for i in range(wrld.width())] for j in range(wrld.height())]
 
         # Value Iteration?
-        for k in range(0, 1):
+        policies = [policy1, policy2]
+        policyIndex = 1
+        for k in range(0, 50):
             # print("Level", k)
             for i in range(0, wrld.width()):
                 for j in range(0, wrld.height()):
@@ -43,12 +46,17 @@ class TestCharacter(CharacterEntity):
                                     if i+a == self.exitX and j+b == self.exitY:
                                         reward = 100
                                     elif wrld.monsters_at(i + a, j + b):
-                                        print("Monster At", i+a,j+b)
+                                        # print("Monster At", i+a,j+b)
                                         reward = -1000
                                     else:
                                         reward = -1
 
-                                    p = policy[j + b][i + a]
+                                    if policyIndex == 0:
+                                        prevPolicyIndex = 1
+                                    else:
+                                        prevPolicyIndex = 0
+
+                                    p = policies[prevPolicyIndex][j + b][i + a]
                                     v = p[2] + reward
 
                                     if max is None:
@@ -61,14 +69,19 @@ class TestCharacter(CharacterEntity):
                                             bestA = a
                                             bestB = b
 
-                    policy[j][i] = (bestA, bestB, max)
+                    policies[policyIndex][j][i] = (bestA, bestB, max)
 
-        for i in policy:
+            if policyIndex == 0:
+                policyIndex = 1
+            else:
+                policyIndex = 0
+
+        for i in policies[policyIndex]:
             print(*i, sep="\t\t")
 
         # Choose best move
         # print("Im at", self.x, self.y)
-        p = policy[self.y][self.x]
+        p = policies[policyIndex][self.y][self.x]
         # print("Im going to", p[0], p[1])
         self.move(p[0], p[1])
 
