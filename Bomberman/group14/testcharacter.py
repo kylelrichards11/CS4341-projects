@@ -44,30 +44,34 @@ class TestCharacter(CharacterEntity):
                                 if i + a < wrld.width() and i + a >= 0 and j + b < wrld.height() and j + b >= 0 and (wrld.monsters_at(i + a, j + b) or wrld.characters_at(i + a, j + b) or wrld.exit_at(i + a, j + b) or wrld.empty_at(i + a, j + b)):
                                     #print("Found move at", i+a, j+b)
                                     if i+a == self.exitX and j+b == self.exitY:
-                                        reward = 100
+                                        bestA = 0
+                                        bestB = 0
+                                        max = 100
                                     elif wrld.monsters_at(i + a, j + b):
                                         # print("Monster At", i+a,j+b)
-                                        reward = -1000
+                                        bestA = 0
+                                        bestB = 0
+                                        max = -1000
                                     else:
                                         reward = -1
 
-                                    if policyIndex == 0:
-                                        prevPolicyIndex = 1
-                                    else:
-                                        prevPolicyIndex = 0
+                                        if policyIndex == 0:
+                                            prevPolicyIndex = 1
+                                        else:
+                                            prevPolicyIndex = 0
 
-                                    p = policies[prevPolicyIndex][j + b][i + a]
-                                    v = p[2] + reward
+                                        p = policies[prevPolicyIndex][j + b][i + a]
+                                        v = p[2] + reward
 
-                                    if max is None:
-                                        max = v
-                                        bestA = a
-                                        bestB = b
-                                    else:
-                                        if v > max + reward:
+                                        if max is None:
                                             max = v
                                             bestA = a
                                             bestB = b
+                                        else:
+                                            if v > max + reward:
+                                                max = v
+                                                bestA = a
+                                                bestB = b
 
                     policies[policyIndex][j][i] = (bestA, bestB, max)
 
