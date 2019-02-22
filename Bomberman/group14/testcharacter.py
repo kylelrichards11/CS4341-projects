@@ -5,6 +5,9 @@ sys.path.insert(0, '../bomberman')
 from entity import CharacterEntity
 from colorama import Fore, Back
 from pandas import *
+pandas.set_option('display.max_rows', 19)
+pandas.set_option('display.max_columns', 8)
+pandas.set_option('display.width', 1000)
 
 class TestCharacter(CharacterEntity):
 
@@ -73,8 +76,7 @@ class TestCharacter(CharacterEntity):
             else:
                 policyIndex = 0
 
-        for i in policies[policyIndex]:
-            print(*i, sep="\t\t")
+        print(DataFrame(policies[policyIndex]))
 
         # Choose best move
         # print("Im at", self.x, self.y)
