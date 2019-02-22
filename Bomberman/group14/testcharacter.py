@@ -44,8 +44,8 @@ class TestCharacter(CharacterEntity):
                                 if i + a < wrld.width() and i + a >= 0 and j + b < wrld.height() and j + b >= 0 and (wrld.monsters_at(i + a, j + b) or wrld.characters_at(i + a, j + b) or wrld.exit_at(i + a, j + b) or wrld.empty_at(i + a, j + b)):
                                     #print("Found move at", i+a, j+b)
                                     if i+a == self.exitX and j+b == self.exitY:
-                                        bestA = 0
-                                        bestB = 0
+                                        bestA = a
+                                        bestB = b
                                         max = 100
                                     elif wrld.monsters_at(i + a, j + b):
                                         # print("Monster At", i+a,j+b)
