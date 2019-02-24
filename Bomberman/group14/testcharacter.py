@@ -30,6 +30,7 @@ class TestCharacter(CharacterEntity):
                     max = None
                     bestA = None
                     bestB = None
+                    monsterFound = False
                     for a in range(-1, 2):
                         for b in range(-1, 2):
                             if not (a == 0 and b == 0) and not wrld.exit_at(i, j) and not wrld.wall_at(i, j):
@@ -39,11 +40,20 @@ class TestCharacter(CharacterEntity):
                                         bestA = a
                                         bestB = b
                                         max = self.exitReward - 1
-                                    elif wrld.monsters_at(i + a, j + b):
-                                        # print("Monster At", i+a,j+b)
-                                        bestA = 0
-                                        bestB = 0
-                                        max = self.monsterReward
+
+                                    for c in range(-1, 2):
+                                        for d in range(-1, 2):
+                                            if i + a + c < wrld.width() and i + a + c >= 0 and j + b + d < wrld.height() and j + b + d >= 0 and not wrld.wall_at(
+                                                    i + a + c, j + b + d):
+                                                if wrld.monsters_at(i + a + c, j + b + d):
+                                                    # print(i, j)
+                                                    # print("Monster At", i+a,j+b)
+                                                    max = self.monsterReward
+                                                    if bestA is None:
+                                                        bestA = 1
+                                                    if bestB is None:
+                                                        bestB = 1
+                                                    monsterFound = True
                                     else:
                                         reward = -1
 
@@ -61,7 +71,8 @@ class TestCharacter(CharacterEntity):
                                             bestB = b
                                         else:
                                             if v > max + reward:
-                                                max = v
+                                                if not monsterFound:
+                                                    max = v
                                                 bestA = a
                                                 bestB = b
                             elif wrld.exit_at(i, j):
@@ -77,6 +88,9 @@ class TestCharacter(CharacterEntity):
                 policyIndex = 0
 
         print(DataFrame(policies[policyIndex]))
+
+        if policies[policyIndex][self.y][self.x][2] < -99:
+            self.place_bomb()
 
         # Choose best move
         # print("Im at", self.x, self.y)
