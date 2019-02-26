@@ -11,9 +11,8 @@ pandas.set_option('display.width', 1000)
 
 class TestCharacter(CharacterEntity):
 
-    exitReward = 100
-    monsterReward = -1000
-    bombReward = -1000
+    exitReward = 1000
+    deathReward = -1000
     bombTimer = None
 
     def do(self, wrld):
@@ -61,18 +60,22 @@ class TestCharacter(CharacterEntity):
                                         # If the bomb will explode soon check if we are near it
                                         if self.bombTimer is not None and self.bombTimer < 2:
                                             if self.isInExplodeRange(i, j, wrld):
-                                                max = self.bombReward
+                                                max = self.deathReward
                                                 deathFound = True
+
+                                        # Check for explosion cells
+                                        if wrld.explosion_at(i, j):
+                                            max = self.deathReward
+                                            deathFound = True
 
                                         # Check for nearby monsters
                                         if self.checkForNearbyMonster(wrld, i, j, a, b):
                                             deathFound = True
-                                            max = self.monsterReward
+                                            max = self.deathReward
                                             if bestA is None:
                                                 bestA = 1
                                             if bestB is None:
                                                 bestB = 1
-
 
                                         # If we are not next to the exit, find the best cell to go to
                                         if not nextToExit:
@@ -92,14 +95,15 @@ class TestCharacter(CharacterEntity):
                                                     bestB = b
 
                                     # If there is a wall at this spot (from else) and we are at this i, j, then we are next to a wall
-                                    elif i == self.x and j == self.y:
+                                    elif i == self.x and j == self.y and (a == 0 or b == 0):
                                         nextToWall = True
 
                             # If this is the exit cell, set the reward appropriately
                             elif wrld.exit_at(i, j):
-                                    bestA = 0
-                                    bestB = 0
-                                    max = self.exitReward
+                                bestA = 0
+                                bestB = 0
+                                max = self.exitReward
+
 
                     # Update the policy matrix
                     policies[policyIndex][j][i] = (bestA, bestB, max)
@@ -111,7 +115,7 @@ class TestCharacter(CharacterEntity):
         print(DataFrame(policies[policyIndex]))
 
         # If we are near a monster or next to a wall place a bomb
-        if policies[policyIndex][self.y][self.x][2] < self.monsterReward - 1 or nextToWall:
+        if policies[policyIndex][self.y][self.x][2] < self.deathReward - 1 or nextToWall:
             if self.getBombLocation(wrld)[0] is None:
                 self.place_bomb()
                 self.bombTimer = wrld.bomb_time
