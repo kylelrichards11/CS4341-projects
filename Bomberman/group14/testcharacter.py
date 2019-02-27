@@ -12,7 +12,8 @@ pandas.set_option('display.width', 1000)
 class TestCharacter(CharacterEntity):
 
     exitReward = 1000
-    deathReward = -1000
+    monsterReward = -1000
+    explosionReward = -1100
     bombTimer = None
 
     def do(self, wrld):
@@ -27,9 +28,15 @@ class TestCharacter(CharacterEntity):
         nextToWall = False
 
         # Good ol' Value Iteration?
+        checkForMons = False
+        for a in range (-3, 4):
+            for b in range (-3, 4):
+                if self.checkForNearbyMonster(wrld, self.x, self.y, a, b) is not None:
+                    checkForMons = True
+
 
         # Iterate 50 times
-        for k in range(0, 50):
+        for k in range(0, 20):
             # print("Level", k)
 
             # For each cell in the world
@@ -46,7 +53,8 @@ class TestCharacter(CharacterEntity):
                         for b in range(-1, 2):
 
                             # Ignore the current cell, the exit cell, and cells that are walls
-                            if not (a == 0 and b == 0) and not wrld.exit_at(i, j) and not wrld.wall_at(i, j):
+                            # if not (a == 0 and b == 0) and not wrld.exit_at(i, j) and not wrld.wall_at(i, j):
+                            if not wrld.exit_at(i, j) and not wrld.wall_at(i, j):
                                 if self.checkInWorldBounds(i+a, j+b, wrld):
                                     if not wrld.wall_at(i+a, j+b):
 
@@ -60,26 +68,31 @@ class TestCharacter(CharacterEntity):
                                         # If the bomb will explode soon check if we are near it
                                         if self.bombTimer is not None and self.bombTimer < 2:
                                             if self.isInExplodeRange(i, j, wrld):
-                                                max = self.deathReward
+                                                max = self.explosionReward
                                                 deathFound = True
 
                                         # Check for explosion cells
                                         if wrld.explosion_at(i, j):
-                                            max = self.deathReward
+                                            max = self.explosionReward
                                             deathFound = True
 
                                         # Check for nearby monsters
-                                        if self.checkForNearbyMonster(wrld, i, j, a, b):
-                                            deathFound = True
-                                            max = self.deathReward
-                                            if bestA is None:
-                                                bestA = 1
-                                            if bestB is None:
-                                                bestB = 1
+                                        if checkForMons:
+                                            nearbyMonsters = self.checkForNearbyMonster(wrld, i, j, a, b)
+                                            if nearbyMonsters is not None:
+                                                deathFound = True
+                                                max = self.monsterReward
+                                                if bestA is None:
+                                                    bestA = nearbyMonsters[0]
+                                                if bestB is None:
+                                                    bestB = nearbyMonsters[1]
+                                                if wrld.explosion_at(i+bestA, j+bestB):
+                                                    bestA = 0
+                                                    bestB = 0
 
                                         # If we are not next to the exit, find the best cell to go to
                                         if not nextToExit:
-                                            reward = -1#(wrld.height() - j)
+                                            reward = -(wrld.height() - j)
                                             p = policies[self.getPreviousPolicyIndex(policyIndex)][j + b][i + a]
                                             v = p[2] + reward
 
@@ -95,7 +108,7 @@ class TestCharacter(CharacterEntity):
                                                     bestB = b
 
                                     # If there is a wall at this spot (from else) and we are at this i, j, then we are next to a wall
-                                    elif i == self.x and j == self.y and (a == 0 or b == 0):
+                                    elif i == self.x and j == self.y and a == 0:
                                         nextToWall = True
 
                             # If this is the exit cell, set the reward appropriately
@@ -115,8 +128,8 @@ class TestCharacter(CharacterEntity):
         print(DataFrame(policies[policyIndex]))
 
         # If we are near a monster or next to a wall place a bomb
-        if policies[policyIndex][self.y][self.x][2] < self.deathReward - 1 or nextToWall:
-            if self.getBombLocation(wrld)[0] is None:
+        if policies[policyIndex][self.y][self.x][2] < self.monsterReward - 1 or nextToWall:
+            if self.getBombLocation(wrld) is None:
                 self.place_bomb()
                 self.bombTimer = wrld.bomb_time
 
@@ -134,24 +147,52 @@ class TestCharacter(CharacterEntity):
         # print("My direction is", p[0], p[1])
         self.move(p[0], p[1])
 
-    def checkForNearbyMonster(self, wrld, i, j, a, b):
-        for c in range(-1, 2):
-            for d in range(-1, 2):
+    def checkForMonster(self, wrld, i, j, a, b):
+        for c in range(-3, 4):
+            for d in range(-3, 4):
                 if self.checkInWorldBounds(i + a + c, j + b + d, wrld) and not wrld.wall_at(i + a + c, j + b + d):
                     if wrld.monsters_at(i + a + c, j + b + d):
-                        return True
-        return False
+                        if a+c < 0:
+                            xDir = -1
+                        else:
+                            xDir = 1
+
+                        if b+d < 0:
+                            yDir = -1
+                        else:
+                            yDir = 1
+                        return xDir,yDir
+        return None
+
+    def checkForNearbyMonster(self, wrld, i, j, a, b):
+        for c in range(-2, 3):
+            for d in range(-2, 3):
+                if self.checkInWorldBounds(i + a + c, j + b + d, wrld) and not wrld.wall_at(i + a + c, j + b + d):
+                    if wrld.monsters_at(i + a + c, j + b + d):
+                        if a+c < 0:
+                            xDir = 1
+                        else:
+                            xDir = -1
+
+                        if b+d < 0:
+                            yDir = 1
+                        else:
+                            yDir = -1
+                        return xDir,yDir
+        return None
+
+
 
     def getBombLocation(self, wrld):
         for i in range(wrld.width()):
             for j in range(wrld.height()):
                 if wrld.bomb_at(i, j):
                     return i, j
-        return None, None
+        return None
 
     def isInExplodeRange(self, x, y, wrld):
         bombLoc = self.getBombLocation(wrld)
-        if bombLoc[0] is None:
+        if bombLoc is None:
             return False
 
         if x < (bombLoc[0] + wrld.expl_range) and x > (bombLoc[0] - wrld.expl_range) and y == bombLoc[1]:
