@@ -5,6 +5,7 @@ sys.path.insert(0, '../bomberman')
 from entity import CharacterEntity
 from colorama import Fore, Back
 from pandas import *
+import numpy as np
 pandas.set_option('display.max_rows', 19)
 pandas.set_option('display.max_columns', 8)
 pandas.set_option('display.width', 1000)
@@ -68,14 +69,6 @@ class TestCharacter(CharacterEntity):
                                             max = self.deathReward
                                             deathFound = True
 
-                                        # Check for nearby monsters
-                                        if self.checkForNearbyMonster(wrld, i, j, a, b):
-                                            deathFound = True
-                                            max = self.deathReward
-                                            if bestA is None:
-                                                bestA = 1
-                                            if bestB is None:
-                                                bestB = 1
 
                                         # If we are not next to the exit, find the best cell to go to
                                         if not nextToExit:
@@ -172,3 +165,18 @@ class TestCharacter(CharacterEntity):
             return 1
         else:
             return 0
+
+
+    def getExitLoc(self, x, y, wrld):
+        if wrld.exit_at(x, y):
+            return x, y
+
+    def getEuclideanDist(self, x, y, wrld):
+        exit_x, exit_y = self.getExitLoc(x, y, wrld)
+        return np.sqrt(((x - exit_x) ^ 2) + ((y - exit_y) ^ 2))
+
+    def getManhattanDist(self, x, y, wrld):
+        exit_x, exit_y = self.getExitLoc(x, y, wrld)
+        return np.abs(x-exit_x) + np.abs(y-exit_y)
+
+
