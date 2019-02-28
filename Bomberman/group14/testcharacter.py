@@ -15,18 +15,70 @@ class TestCharacter(CharacterEntity):
     exitReward = 1000
     deathReward = -1000
     bombTimer = None
+    manhattanGrid = None
+
 
     def do(self, wrld):
         # print("My Location: ", self.x, ", ", self.y)
+        if self.manhattanGrid is None:
+            self.manhattanGrid = self.generateManhattan(wrld)
 
-        self.getManhattanDist(self.x, self.y, wrld)
-        self.move(0, 0)
+        monsterLocations = self.findAllMonsters(wrld)
 
-    def checkForNearbyMonster(self, wrld, i, j, a, b):
-        for c in range(-1, 2):
-            for d in range(-1, 2):
-                if self.checkInWorldBounds(i + a + c, j + b + d, wrld) and not wrld.wall_at(i + a + c, j + b + d):
-                    if wrld.monsters_at(i + a + c, j + b + d):
+        monsterGrids = []
+        for m in monsterLocations:
+            monsterGrids.append(self.makeMonsterGrid(wrld, m[0], m[1]))
+
+        min = None
+        for a in range(-1, 2):
+            for b in range(-1, 2):
+                if self.checkInWorldBounds(self.x + a, self.y + b, wrld) and not (a == 0 and b == 0):
+                    monsSum = 0
+                    if self.checkForNearbyMonster(wrld, self.x, self.y):
+                        for m in monsterGrids:
+                            monsSum = monsSum + m[self.y + b][self.x + a]
+
+
+                    v = self.manhattanGrid[self.y + b][self.x + a] - monsSum
+
+                    if min is None or v < min:
+                        min = v
+                        bestA = a
+                        bestB = b
+
+        self.move(bestA, bestB)
+
+
+    def monsterHeuristic(self, wrld, x, y):
+        return
+
+    def makeMonsterGrid(self, wrld, x, y):
+        d = [[1000 for i in range(wrld.width())] for j in range(wrld.height())]
+
+        d[y][x] = 0
+
+        for k in range(0, 20):
+            for i in range(wrld.width()):
+                for j in range(wrld.height()):
+                    for a in range(-1, 2):
+                        for b in range(-1, 2):
+                            if self.checkInWorldBounds(i + a, j + b, wrld) and not (a == 0 and b == 0):
+                                if not wrld.wall_at(i + a, j + b):
+                                    v = d[j + b][i + a]
+                                    if v > 999 or v > d[j][i] + 1:
+                                        d[j + b][i + a] = d[j][i] + 1
+
+        print("Monster Grid")
+        print(DataFrame(d))
+
+        return d
+
+
+    def checkForNearbyMonster(self, wrld, x, y):
+        for a in range(-2, 3):
+            for b in range(-2, 3):
+                if self.checkInWorldBounds(x + a, y + b, wrld) and not wrld.wall_at(x + a, y + b):
+                    if wrld.monsters_at(x + a, y + b):
                         return True
         return False
 
@@ -66,43 +118,31 @@ class TestCharacter(CharacterEntity):
         exit_x, exit_y = self.getExitLoc(x, y, wrld)
         return np.sqrt(((x - exit_x) ^ 2) + ((y - exit_y) ^ 2))
 
-    def getManhattanDist(self, x, y, wrld):
+    def generateManhattan(self, wrld):
 
-        h1 = [[1000 for i in range(wrld.width())] for j in range(wrld.height())]
-        h2 = [[1000 for i in range(wrld.width())] for j in range(wrld.height())]
+        d = [[1000 for i in range(wrld.width())] for j in range(wrld.height())]
 
-        exit_x, exit_y = self.getExitLoc(wrld)
+        e = self.getExitLoc(wrld)
+        exitX = e[0]
+        exitY = e[1]
 
-        h1[exit_y][exit_x] = 0
-        h2[exit_y][exit_x] = 0
+        d[exitY][exitX] = 0
 
-        h = [h1, h2]
-
-        h_index = 0
-
-        for k in range(0, 1):
+        for k in range(0, 20):
             for i in range(wrld.width()):
                 for j in range(wrld.height()):
-                    if not wrld.wall_at(i, j) and not wrld.exit_at(i, j):
-                        min = None
-                        for a in range(-1, 2):
-                            for b in range(-1, 2):
-                                if self.checkInWorldBounds(i + a, j + b, wrld):
-                                    if not wrld.wall_at(i + a, j + b):
-                                        v = h[h_index][j][i]
-                                        if min is None:
-                                            min = v
-                                        else:
-                                            if v < min:
-                                                min = v
+                    for a in range (-1, 2):
+                        for b in range (-1, 2):
+                            if self.checkInWorldBounds(i + a, j + b, wrld) and not (a == 0 and b == 0):
+                                if not wrld.wall_at(i + a, j + b):
+                                    v = d[j + b][i + a]
+                                    if v > 999 or v > d[j][i] + 1:
+                                        d[j + b][i + a] = d[j][i] + 1
 
-                        h[self.getOtherIndex(h_index)][j][i] = min + 1
 
-            h_index = self.getOtherIndex(h_index)
+        print(DataFrame(d))
 
-        print(DataFrame(h[h_index]))
-
-        return h[h_index][y][x]
+        return d
 
     def getOtherIndex(self, idx):
         if idx == 0:
@@ -110,4 +150,12 @@ class TestCharacter(CharacterEntity):
         else:
             return 0
 
+
+    def findAllMonsters(self, wrld):
+        m = []
+        for i in range (wrld.width()):
+            for j in range (wrld.height()):
+                if wrld.monsters_at(i, j):
+                    m.append((i, j))
+        return m
 
