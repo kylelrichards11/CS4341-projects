@@ -16,31 +16,47 @@ class TestCharacter(CharacterEntity):
     deathReward = -1000
     bombTimer = None
     manhattanGrid = None
+    bombPlaces = None
 
 
     def do(self, wrld):
         # print("My Location: ", self.x, ", ", self.y)
+
         if self.manhattanGrid is None:
             self.manhattanGrid = self.generateManhattan(wrld)
 
+        if self.bombPlaces is None:
+            self.bombPlaces = self.getBombPlaces(wrld)
+
+        if self.bombPlaces is not None:
+            for b in self.bombPlaces:
+                if b[0] == self.x and b[1] == self.y:
+                    self.place_bomb()
+
         monsterLocations = self.findAllMonsters(wrld)
 
-        monsterGrids = []
+        gridCopy = [[0 for i in range(wrld.width())] for j in range(wrld.height())]
+        for i in range(wrld.width()):
+            for j in range(wrld.height()):
+                gridCopy[j][i] = self.manhattanGrid[j][i]
+
+
         for m in monsterLocations:
-            monsterGrids.append(self.makeMonsterGrid(wrld, m[0], m[1]))
+            for k in range(1, 4):
+                for a in range(-1*k, k + 1):
+                    for b in range(-1*k, k + 1):
+                        if self.checkInWorldBounds(m[0] + a, m[1] + b, wrld):
+                            gridCopy[m[1] + b][m[0] + a] = gridCopy[m[1] + b][m[0] + a] + 4
+
+
+        print(DataFrame(gridCopy))
+        print(DataFrame(self.manhattanGrid))
 
         min = None
         for a in range(-1, 2):
             for b in range(-1, 2):
                 if self.checkInWorldBounds(self.x + a, self.y + b, wrld) and not (a == 0 and b == 0):
-                    monsSum = 0
-                    if self.checkForNearbyMonster(wrld, self.x, self.y):
-                        for m in monsterGrids:
-                            monsSum = monsSum + m[self.y + b][self.x + a]
-
-
-                    v = self.manhattanGrid[self.y + b][self.x + a] - monsSum
-
+                    v = gridCopy[self.y + b][self.x + a]
                     if min is None or v < min:
                         min = v
                         bestA = a
@@ -53,20 +69,21 @@ class TestCharacter(CharacterEntity):
         return
 
     def makeMonsterGrid(self, wrld, x, y):
-        d = [[1000 for i in range(wrld.width())] for j in range(wrld.height())]
+        d = [[0 for i in range(wrld.width())] for j in range(wrld.height())]
 
-        d[y][x] = 0
+        d[y][x] = 3
 
-        for k in range(0, 20):
-            for i in range(wrld.width()):
-                for j in range(wrld.height()):
-                    for a in range(-1, 2):
-                        for b in range(-1, 2):
-                            if self.checkInWorldBounds(i + a, j + b, wrld) and not (a == 0 and b == 0):
-                                if not wrld.wall_at(i + a, j + b):
-                                    v = d[j + b][i + a]
-                                    if v > 999 or v > d[j][i] + 1:
-                                        d[j + b][i + a] = d[j][i] + 1
+        for k in range(0, 3):
+            for a in range(-1, 2):
+                for b in range(-1, 2):
+                    if self.checkInWorldBounds(x + a, y + b, wrld) and not (a == 0 and b == 0):
+                        if not wrld.wall_at(x + a, y + b):
+                            v = d[x + b][y + a]
+                            if v == 0 or v > d[j][i] + 1:
+                                d[j + b][i + a] = d[j][i] + 1
+
+
+
 
         print("Monster Grid")
         print(DataFrame(d))
@@ -128,6 +145,10 @@ class TestCharacter(CharacterEntity):
 
         d[exitY][exitX] = 0
 
+        if self.bombPlaces is not None:
+            for b in self.bombPlaces:
+                d[b[1]][b[0]] = 5
+
         for k in range(0, 20):
             for i in range(wrld.width()):
                 for j in range(wrld.height()):
@@ -159,3 +180,27 @@ class TestCharacter(CharacterEntity):
                     m.append((i, j))
         return m
 
+    def getBombPlaces(self, wrld):
+        bombLocs = []
+        for j in range(wrld.height()):
+            x = wrld.width() - 1
+            if wrld.wall_at(x, j):
+                bombLocs.append((x, j-1))
+        return bombLocs
+
+    def getBombLocation(self, wrld):
+        for i in range(wrld.width()):
+            for j in range(wrld.height()):
+                if wrld.bomb_at(i, j):
+                    return i, j
+        return None, None
+
+    def isInExplodeRange(self, x, y, wrld):
+        bombLoc = self.getBombLocation(wrld)
+        if bombLoc[0] is None:
+            return False
+        if x < (bombLoc[0] + wrld.expl_range) and x > (bombLoc[0] - wrld.expl_range) and y == bombLoc[1]:
+            return True
+        if y < (bombLoc[1] + wrld.expl_range) and y > (bombLoc[1] - wrld.expl_range) and x == bombLoc[0]:
+            return True
+        return False
