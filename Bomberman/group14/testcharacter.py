@@ -22,16 +22,22 @@ class TestCharacter(CharacterEntity):
     def do(self, wrld):
         # print("My Location: ", self.x, ", ", self.y)
 
-        if self.manhattanGrid is None:
-            self.manhattanGrid = self.generateManhattan(wrld)
+        goal = None
 
         if self.bombPlaces is None:
-            self.bombPlaces = self.getBombPlaces(wrld)
+            self.bombPlaces = self.getBombPlace(wrld)
 
         if self.bombPlaces is not None:
-            for b in self.bombPlaces:
-                if b[0] == self.x and b[1] == self.y:
-                    self.place_bomb()
+            if self.bombPlaces[0] == self.x and self.bombPlaces[1] == self.y:
+                self.place_bomb()
+            else:
+                goal = (self.bombPlaces[0], self.bombPlaces[1])
+
+        if goal is None:
+            goal = self.getExitLoc(wrld)
+
+        if self.manhattanGrid is None:
+            self.manhattanGrid = self.generateManhattan(wrld, goal[0], goal[1])
 
         monsterLocations = self.findAllMonsters(wrld)
 
@@ -48,9 +54,7 @@ class TestCharacter(CharacterEntity):
                         if self.checkInWorldBounds(m[0] + a, m[1] + b, wrld):
                             gridCopy[m[1] + b][m[0] + a] = gridCopy[m[1] + b][m[0] + a] + 4
 
-
         print(DataFrame(gridCopy))
-        print(DataFrame(self.manhattanGrid))
 
         min = None
         for a in range(-1, 2):
@@ -135,19 +139,11 @@ class TestCharacter(CharacterEntity):
         exit_x, exit_y = self.getExitLoc(x, y, wrld)
         return np.sqrt(((x - exit_x) ^ 2) + ((y - exit_y) ^ 2))
 
-    def generateManhattan(self, wrld):
+    def generateManhattan(self, wrld, x, y):
 
         d = [[1000 for i in range(wrld.width())] for j in range(wrld.height())]
 
-        e = self.getExitLoc(wrld)
-        exitX = e[0]
-        exitY = e[1]
-
-        d[exitY][exitX] = 0
-
-        if self.bombPlaces is not None:
-            for b in self.bombPlaces:
-                d[b[1]][b[0]] = 5
+        d[y][x] = 0
 
         for k in range(0, 20):
             for i in range(wrld.width()):
@@ -165,6 +161,30 @@ class TestCharacter(CharacterEntity):
 
         return d
 
+    def generateBombManhattan(self, wrld):
+
+        bombs = []
+
+
+        if self.bombPlaces is not None:
+            d = [[1000 for i in range(wrld.width())] for j in range(wrld.height())]
+            d[self.bombPlaces[1]][self.bombPlaces[0]] = 0
+
+            for k in range(0, 20):
+                for i in range(wrld.width()):
+                    for j in range(wrld.height()):
+                        for a in range (-1, 2):
+                            for b in range (-1, 2):
+                                if self.checkInWorldBounds(i + a, j + b, wrld) and not (a == 0 and b == 0):
+                                    if not wrld.wall_at(i + a, j + b):
+                                        v = d[j + b][i + a]
+                                        if v > 999 or v > d[j][i] + 1:
+                                            d[j + b][i + a] = d[j][i] + 1
+
+            bombs.append(d)
+
+        return bombs
+
     def getOtherIndex(self, idx):
         if idx == 0:
             return 1
@@ -180,13 +200,11 @@ class TestCharacter(CharacterEntity):
                     m.append((i, j))
         return m
 
-    def getBombPlaces(self, wrld):
-        bombLocs = []
+    def getBombPlace(self, wrld):
         for j in range(wrld.height()):
             x = wrld.width() - 1
             if wrld.wall_at(x, j):
-                bombLocs.append((x, j-1))
-        return bombLocs
+                return x, j-1
 
     def getBombLocation(self, wrld):
         for i in range(wrld.width()):
