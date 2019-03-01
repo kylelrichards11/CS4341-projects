@@ -24,14 +24,16 @@ class TestCharacter(CharacterEntity):
 
         goal = None
 
-        if self.bombPlaces is None:
-            self.bombPlaces = self.getBombPlace(wrld)
+        self.bombPlaces = self.getBombPlace(wrld)
 
         if self.bombPlaces is not None:
             if self.bombPlaces[0] == self.x and self.bombPlaces[1] == self.y:
-                self.place_bomb()
+                if self.getBombLocation(wrld) is None:
+                    self.place_bomb()
+                    self.bombTimer = wrld.bomb_time
             else:
                 goal = (self.bombPlaces[0], self.bombPlaces[1])
+
 
         if goal is None:
             goal = self.getExitLoc(wrld)
@@ -46,6 +48,23 @@ class TestCharacter(CharacterEntity):
             for j in range(wrld.height()):
                 gridCopy[j][i] = self.manhattanGrid[j][i]
 
+        bombLoc = self.getBombLocation(wrld)
+
+        futureExplGrid = None
+
+        if bombLoc is not None and self.bombTimer is not None and self.bombTimer < 2:
+            futureExplGrid = [[0 for i in range(wrld.width())] for j in range(wrld.height())]
+            for i in range(wrld.width()):
+                for j in range(wrld.height()):
+                    if self.isInExplodeRange(i, j, wrld):
+                        futureExplGrid[j][i] = 100
+                    else:
+                        futureExplGrid[j][i] = 0
+
+        for i in range(wrld.width()):
+            for j in range(wrld.height()):
+                if wrld.explosion_at(i, j):
+                    gridCopy[j][i] = gridCopy[j][i] + 100
 
         for m in monsterLocations:
             for k in range(1, 4):
@@ -53,6 +72,11 @@ class TestCharacter(CharacterEntity):
                     for b in range(-1*k, k + 1):
                         if self.checkInWorldBounds(m[0] + a, m[1] + b, wrld):
                             gridCopy[m[1] + b][m[0] + a] = gridCopy[m[1] + b][m[0] + a] + 4
+
+        if futureExplGrid is not None:
+            for i in range(wrld.width()):
+                for j in range(wrld.height()):
+                    gridCopy[j][i] = gridCopy[j][i] + futureExplGrid[j][i]
 
         print(DataFrame(gridCopy))
 
@@ -65,6 +89,14 @@ class TestCharacter(CharacterEntity):
                         min = v
                         bestA = a
                         bestB = b
+
+        print(self.bombTimer)
+
+        if self.bombTimer is not None:
+            self.bombTimer = self.bombTimer - 1
+
+        #if self.getBombLocation(wrld) is None:
+        #    self.bombTimer = None
 
         self.move(bestA, bestB)
 
@@ -211,7 +243,7 @@ class TestCharacter(CharacterEntity):
             for j in range(wrld.height()):
                 if wrld.bomb_at(i, j):
                     return i, j
-        return None, None
+        return None
 
     def isInExplodeRange(self, x, y, wrld):
         bombLoc = self.getBombLocation(wrld)
