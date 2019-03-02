@@ -62,8 +62,18 @@ class TestCharacter(CharacterEntity):
                                         yDir = -1
                     monsterGrid[j][i] = (monsterFound, xDir, yDir)
 
-        #print("Monster Grid:")
-        #print(DataFrame(monsterGrid))
+        explosionGrid = None
+
+        if self.getBombLocation(wrld) is not None:
+            explosionGrid = [[False for i in range(wrld.width())] for j in range(wrld.height())]
+            for i in range(wrld.width()):
+                for j in range(wrld.height()):
+                    if self.isInExplodeRange(i, j, wrld):
+                        explosionGrid[j][i] = True
+
+
+        #print("Explosion Grid:")
+        #print(DataFrame(explosionGrid))
 
         # Iterate 50 times
         for k in range(0, 21):
@@ -102,8 +112,8 @@ class TestCharacter(CharacterEntity):
                                             nextToExit = True
 
                                         # If the bomb will explode soon check if we are near it
-                                        if self.bombTimer is not None and self.bombTimer < 2:
-                                            if self.isInExplodeRange(i, j, wrld):
+                                        if self.bombTimer is not None and self.bombTimer < 2 and explosionGrid is not None:
+                                            if explosionGrid[j][i]:
                                                 max = self.explosionReward
                                                 deathFound = True
 
@@ -122,7 +132,7 @@ class TestCharacter(CharacterEntity):
                                                     bestA = mons[1]
                                                 if bestB is None:
                                                     bestB = mons[2]
-                                                if wrld.explosion_at(i+bestA, j+bestB):
+                                                if wrld.explosion_at(i + bestA, j + bestB) or (explosionGrid is not None and self.checkInWorldBounds(i + bestA, i + bestB, wrld) and explosionGrid[j + bestB][i + bestA] and self.bombTimer is not None and self.bombTimer < 2):
                                                     bestA = 0
                                                     bestB = 0
 
