@@ -38,14 +38,9 @@ class TestCharacter(CharacterEntity):
                     checkForMons = True
 
         monsterGrid = None
-        passedMonster = True
-        for m in self.getMonsterLocations(wrld):
-            if m[1] >= self.y - 1:
-                passedMonster = False
 
-        print("Passed Monster: ", passedMonster)
 
-        if checkForMons and not passedMonster:
+        if checkForMons:
             monsterGrid = [[(False, 0, 0) for i in range(wrld.width())] for j in range(wrld.height())]
             for i in range(wrld.width()):
                 for j in range(wrld.height()):
@@ -67,8 +62,8 @@ class TestCharacter(CharacterEntity):
                                         yDir = -1
                     monsterGrid[j][i] = (monsterFound, xDir, yDir)
 
-        print("Monster Grid:")
-        print(DataFrame(monsterGrid))
+        #print("Monster Grid:")
+        #print(DataFrame(monsterGrid))
 
         # Iterate 50 times
         for k in range(0, 20):
@@ -119,7 +114,7 @@ class TestCharacter(CharacterEntity):
                                             deathFound = True
 
                                         # Check for nearby monsters
-                                        if checkForMons and not passedMonster:
+                                        if checkForMons:
                                             mons = monsterGrid[j+b][i+a]
                                             if mons[0]:
                                                 #deathFound = True

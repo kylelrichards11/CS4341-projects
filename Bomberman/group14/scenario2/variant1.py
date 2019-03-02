@@ -8,14 +8,13 @@ from game import Game
 
 # TODO This is your code!
 sys.path.insert(1, '../group14')
-from testcharacter import TestCharacter
-
+from scenario2_testcharacter import TestCharacter
 
 # Create the game
 g = Game.fromfile('map.txt')
 
 # TODO Add your character
-g.add_character(TestCharacter("me", # name
+g.add_character(TestCharacter("group14", # name
                               "C",  # avatar
                               0, 0  # position
 ))

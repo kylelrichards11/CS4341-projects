@@ -38,14 +38,9 @@ class TestCharacter(CharacterEntity):
                     checkForMons = True
 
         monsterGrid = None
-        passedMonster = True
-        for m in self.getMonsterLocations(wrld):
-            if m[1] >= self.y - 1:
-                passedMonster = False
 
-        print("Passed Monster: ", passedMonster)
 
-        if checkForMons and not passedMonster:
+        if checkForMons:
             monsterGrid = [[(False, 0, 0) for i in range(wrld.width())] for j in range(wrld.height())]
             for i in range(wrld.width()):
                 for j in range(wrld.height()):
@@ -57,21 +52,21 @@ class TestCharacter(CharacterEntity):
                             if self.checkInWorldBounds(i+c, j+d, wrld):
                                 if wrld.monsters_at(i + c, j + d):
                                     monsterFound = True
-                                    if c <= 0:
+                                    if c < 0:
                                         xDir = 1
                                     else:
                                         xDir = -1
-                                    if d <= 0:
+                                    if d < 0:
                                         yDir = 1
                                     else:
                                         yDir = -1
                     monsterGrid[j][i] = (monsterFound, xDir, yDir)
 
-        print("Monster Grid:")
-        print(DataFrame(monsterGrid))
+        #print("Monster Grid:")
+        #print(DataFrame(monsterGrid))
 
         # Iterate 50 times
-        for k in range(0, 20):
+        for k in range(0, 21):
             # print("\nLevel", k)
 
             # For each cell in the world
@@ -82,11 +77,10 @@ class TestCharacter(CharacterEntity):
                     bestB = None
                     nextToExit = False
                     deathFound = False
-                    abSet = False
 
                     shouldprint = False
                     #if i==7 and j==6:
-                        #shouldprint = True
+                    #    shouldprint = True
 
                     # Look at adjacent cells
                     for a in range(-1, 2):
@@ -119,21 +113,15 @@ class TestCharacter(CharacterEntity):
                                             deathFound = True
 
                                         # Check for nearby monsters
-                                        if checkForMons and not passedMonster:
+                                        if checkForMons:
                                             mons = monsterGrid[j+b][i+a]
                                             if mons[0]:
-                                                #deathFound = True
-                                                abSet = True
+                                                deathFound = True
                                                 max = self.monsterReward
-                                                monsterLoc = self.getMonsterLocations(wrld)[0]
-                                                if monsterLoc[0] > self.x:
-                                                    bestA = -1
-                                                else:
-                                                    bestA = 1
-                                                if monsterLoc[1] > self.y:
-                                                    bestB = -1
-                                                else:
-                                                    bestB = 1
+                                                if bestA is None:
+                                                    bestA = mons[1]
+                                                if bestB is None:
+                                                    bestB = mons[2]
                                                 if wrld.explosion_at(i+bestA, j+bestB):
                                                     bestA = 0
                                                     bestB = 0
@@ -149,18 +137,17 @@ class TestCharacter(CharacterEntity):
                                                 bestA = a
                                                 bestB = b
                                             else:
-                                                if v > max:
+                                                if v > max + reward:
                                                     if not deathFound:
                                                         max = v
-                                                    if not abSet:
-                                                        bestA = a
-                                                        bestB = b
+                                                    bestA = a
+                                                    bestB = b
 
                                             if shouldprint:
                                                 print(max, bestA, bestB)
 
-                                    # If there is a wall at this spot (from else) and we are at this i, j, then we are next to a wall and it is below us
-                                    elif i == self.x and j == self.y and a == 0 and b == 1:
+                                    # If there is a wall at this spot (from else) and we are at this i, j, then we are next to a wall
+                                    elif i == self.x and j == self.y and a == 0:
                                         nextToWall = True
 
                             # If this is the exit cell, set the reward appropriately
@@ -290,7 +277,7 @@ class TestCharacter(CharacterEntity):
         if bombLoc is None:
             return False
 
-        if x < (bombLoc[0] + wrld.expl_range + 1) and x > (bombLoc[0] - wrld.expl_range - 1) and y == bombLoc[1]:
+        if x < (bombLoc[0] + wrld.expl_range) and x > (bombLoc[0] - wrld.expl_range) and y == bombLoc[1]:
             return True
 
         if y < (bombLoc[1] + wrld.expl_range + 1) and y > (bombLoc[1] - wrld.expl_range - 1) and x == bombLoc[0]:
